@@ -46,7 +46,7 @@ The constructor of FacebookTokenStrategy would be executed, and it also triggers
 ```
 The declarations of `options.authorizationURL` and `options.tokenURL` are not used even they are passed to `OAuth2Strategy`. `https://www.facebook.com/${_fbGraphVersion}/dialog/oauth` and `https://graph.facebook.com/${_fbGraphVersion}/oauth/access_token` are mentioned in https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow.
 
-It once makes me think this module really does the flow from Step A to Step D again, which it's already been done on frontend when user log in by Facebook Login JavaScript SDK:
+It once made me think this module really goes through the flow from Step A to Step D again, which it's already been done on frontend when user log in by Facebook Login JavaScript SDK, because the callback of `FacebookTokenStrategy` returns an `accessToken`.
 
 ```
      +--------+                               +---------------+
@@ -70,7 +70,7 @@ It once makes me think this module really does the flow from Step A to Step D ag
                      Figure 1: Abstract Protocol Flow
 ```
 
-Because the callback of `FacebookTokenStrategy` returns an `accessToken`, **I'll show you that this `accessToken` is actually the one we get from frontend and give it to `authenticate` function of passport**.
+**I'll show you that this `accessToken` is still the one we get from frontend and give it to passport's `authenticate` function**.
 
 ```js
 app.post(
@@ -95,4 +95,4 @@ userProfile (accessToken, done) {
     profileURL.search = `${profileURL.search ? profileURL.search + '&' : ''}appsecret_proof=${encodeURIComponent(proof)}`;
   }
 ```
-**This module doesn't re-ask another accessToken, it just uses the one we give and the app secret that only our backend knows to make a request to fetch user's profile, so if any one of `accessToken` or `appSecret` is wrong, we won't get the user profile, 
+**This module doesn't re-ask another `accessToken`, it just uses the one we give and the app secret that only our backend knows to make a request to fetch user's profile, so if any one of `accessToken` or `appSecret` is wrong, we won't get the user profile.**
