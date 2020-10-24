@@ -102,4 +102,4 @@ userProfile (accessToken, done) {
 Brief notes here:
 1. The OAuth2Strategy.prototype.authenticate in `OAuth2Strategy` is never executed when we are using `FacebookTokenStrategy`, it has its own `authenticate` funtion, we are using this one.
 
-2. `this._loadUserProfile` in `authenticate` of `FacebookTokenStrategy` is inherited from `OAuth2Strategy`, but the if you look into it, it ends up using the `userProfile` defined in `FacebookTokenStrategy`.
+2. `this._loadUserProfile` in `authenticate` of `FacebookTokenStrategy` is inherited from `OAuth2Strategy`, but if you look into it, it ends up using the `userProfile` defined in `FacebookTokenStrategy`.
