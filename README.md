@@ -98,3 +98,8 @@ userProfile (accessToken, done) {
 **This module doesn't re-ask another `accessToken`, it just uses the one we give and the app secret that only our backend knows to make a request to fetch user's profile, so if any one of `accessToken` or `appSecret` is wrong, we won't get the user profile.**
 
 > :warning: The test to do: in https://developers.facebook.com/docs/reference/api/securing-graph-api/ which is mentioned in the comment in the `userProfile` above, it says we have to turn on `Requre App Secret`. In development mode now, I haven't turn on that and has no problem yet. But it should be turned on or our practice of authentication would be just meaningless?
+
+Brief note here:
+1. The OAuth2Strategy.prototype.authenticate in `OAuth2Strategy` is never executed when we are using `FacebookTokenStrategy`, it has its own `authenticate` funtion, we are using this one.
+
+2. `this._loadUserProfile` in `authenticate` of `FacebookTokenStrategy` is inherited from `OAuth2Strategy`, but the if you look into it, it ends up using the `userProfile` defined in `FacebookTokenStrategy`.
