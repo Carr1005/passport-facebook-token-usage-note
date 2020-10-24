@@ -20,3 +20,79 @@ We immediately configure our authentication strategy by newing the `FacebookToke
 
 https://github.com/drudge/passport-facebook-token/blob/716461bea0153582e8de2a77a2e36d6f030557c5/src/index.js#L26-L38
 
+```js
+module.exports = class FacebookTokenStrategy extends OAuth2Strategy {
+  constructor (_options, _verify) {
+    const options = _options || {};
+    const verify = _verify;
+    const _fbGraphVersion = options.fbGraphVersion || 'v2.6';
+
+    options.authorizationURL = options.authorizationURL || `https://www.facebook.com/${_fbGraphVersion}/dialog/oauth`;
+    options.tokenURL = options.tokenURL || `https://graph.facebook.com/${_fbGraphVersion}/oauth/access_token`;
+
+    super(options, verify);
+
+    this.name = 'facebook-token';
+    this._accessTokenField = options.accessTokenField || 'access_token';
+    
+    ...
+```
+The constructor of FacebookTokenStrategy would be executed, and it also triggers `OAuth2Strategy`, which is its parent class, by `super(options, verify)`, **an important thing I want to mention here is**,
+
+```js
+    options.authorizationURL = options.authorizationURL || `https://www.facebook.com/${_fbGraphVersion}/dialog/oauth`;
+    options.tokenURL = options.tokenURL || `https://graph.facebook.com/${_fbGraphVersion}/oauth/access_token`;
+    super(options, verify);
+```
+The declarations of `options.authorizationURL` and `options.tokenURL` are not used even they are passed to `OAuth2Strategy`. `https://www.facebook.com/${_fbGraphVersion}/dialog/oauth` and `https://graph.facebook.com/${_fbGraphVersion}/oauth/access_token` are mentioned in https://developers.facebook.com/docs/facebook-login/manually-build-a-login-flow.
+
+It once makes me think this module really does the flow from Step A to Step D again, which it's already been done on frontend when user log in by Facebook Login JavaScript SDK:
+
+```
+     +--------+                               +---------------+
+     |        |--(A)- Authorization Request ->|   Resource    |
+     |        |                               |     Owner     |
+     |        |<-(B)-- Authorization Grant ---|               |
+     |        |                               +---------------+
+     |        |
+     |        |                               +---------------+
+     |        |--(C)-- Authorization Grant -->| Authorization |
+     | Client |                               |     Server    |
+     |        |<-(D)----- Access Token -------|               |
+     |        |                               +---------------+
+     |        |
+     |        |                               +---------------+
+     |        |--(E)----- Access Token ------>|    Resource   |
+     |        |                               |     Server    |
+     |        |<-(F)--- Protected Resource ---|               |
+     +--------+                               +---------------+
+
+                     Figure 1: Abstract Protocol Flow
+```
+
+Because the callback of `FacebookTokenStrategy` returns an `accessToken`, **I'll show you that this `accessToken` is actually the one we get from frontend and give it to `authenticate` function of passport**.
+
+```js
+app.post(
+  '/api/auth/facebook/token',
+  passport.authenticate('facebook-token'),
+  function (req, res) { ... },
+)
+```
+
+A small sum up here is, acutally the mechanism of this module to verify the user is mainly with
+
+https://github.com/drudge/passport-facebook-token/blob/716461bea0153582e8de2a77a2e36d6f030557c5/src/index.js#L98-L105
+
+```js
+userProfile (accessToken, done) {
+  let profileURL = new URL(this._profileURL);
+
+
+  // For further details, refer to https://developers.facebook.com/docs/reference/api/securing-graph-api/
+  if (this._enableProof) {
+    const proof = crypto.createHmac('sha256', this._clientSecret).update(accessToken).digest('hex');
+    profileURL.search = `${profileURL.search ? profileURL.search + '&' : ''}appsecret_proof=${encodeURIComponent(proof)}`;
+  }
+```
+**This module doesn't re-ask another accessToken, it just uses the one we give and the app secret that only our backend knows to make a request to fetch user's profile, so if any one of `accessToken` or `appSecret` is wrong, we won't get the user profile, 
