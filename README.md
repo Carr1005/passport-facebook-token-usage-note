@@ -96,3 +96,5 @@ userProfile (accessToken, done) {
   }
 ```
 **This module doesn't re-ask another `accessToken`, it just uses the one we give and the app secret that only our backend knows to make a request to fetch user's profile, so if any one of `accessToken` or `appSecret` is wrong, we won't get the user profile.**
+
+> :warning: The test to do: in https://developers.facebook.com/docs/reference/api/securing-graph-api/ which is mentioned in the comment in the `userProfile` above, it says we have to turn on `Requre App Secret`. In development mode now, I haven't turn on that and has no problem yet. But it should be turned on or our practice of authentication would be just meaningless?
