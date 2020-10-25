@@ -103,3 +103,93 @@ Brief notes here:
 1. The OAuth2Strategy.prototype.authenticate in `OAuth2Strategy` is never executed when we are using `FacebookTokenStrategy`, it has its own `authenticate` funtion, we are using this one.
 
 2. `this._loadUserProfile` in `authenticate` of `FacebookTokenStrategy` is inherited from `OAuth2Strategy`, but if you look into it, it ends up using the `userProfile` defined in `FacebookTokenStrategy`.
+
+```
+facebook-src-token/src/index.js                                   passport-oauth2/lib/strategy.js                                   oauth/lib/oauth2.js
+
+                                                                                                                                Configuration phase 
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+FacebookTokenStrategy                                          OAuth2Strategy                                                  OAuth2
+constructor() {
+  ...
+  super();          -------------------------->             ...
+                                                            ...
+                                                            ...
+                                                            this._oauth2 = new OAuth2(...); -------------------------->   exports.OAuth2 = 
+                                                                                                                          function(
+                                                                                                                            clientId,
+                                                                                                                            clientSecret,
+                                                                                                                            baseSite,
+                                                                                                                            authorizePath,
+                                                                                                                            accessTokenPath,
+                                                                                                                            customHeaders
+                                                                                                                           ) {
+                                                                                                                            this._clientId= clientId;
+                                                                                                                            this._clientSecret= clientSecret;
+                                                                                                                            this._baseSite= baseSite;
+                                                                                                                            this._authorizeUrl= authorizePath
+                                                                                                                              || "/oauth/authorize";
+                                                                                                                            this._accessTokenUrl= accessTokenPath
+                                                                                                                              || "/oauth/access_token";
+                                                                                                                            this._accessTokenName= "access_token";
+                                                                                                                            this._authMethod= "Bearer";
+                                                                                                                            this._customHeaders = customHeaders
+                                                                                                                              || {};
+                                                                                                                            ...
+                                                                                                                          };
+                                                                                                                          // It doens't make any request
+  ...
+}
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+facebook-src-token/src/index.js                                   passport-oauth2/lib/strategy.js                                   oauth/lib/oauth2.js
+
+                                                                                                        When passport.authenticate('facebook-token') happens
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+FacebookTokenStrategy                                          OAuth2Strategy                                                  OAuth2
+
+authenticate() {
+  const accessToken =
+   this.lookup(req, this._accessTokenField);    (inherited)
+   this._loadUserProfile(accessToken, ()=>{});  ---------->     OAuth2Strategy.prototype._loadUserProfile() {
+}                                                                 var self = this;
+                                                                  function () {
+                                                                    ...
+userProfile (accessToken, done) {               <----------         return self.userProfile(accessToken, done);
+  const proof =                                                     // self ----> FacebookTokenStrategy
+    crypto.createHmac(                                            }                                          
+      'sha256',                                                 }
+       this._clientSecret
+    ).update(accessToken).digest('hex');
+  
+  profileURL.search =
+    `${profileURL.search ?
+      profileURL.search + '&'
+        :
+      ''}appsecret_proof=${encodeURIComponent(proof)}`;
+
+  profileURL.search =
+    `${profileURL.search ?
+      profileURL.search + '&'
+        :
+      ''}fields=${fields}`;
+                                                                             (definition)
+  this._oauth2.get(profileURL, accessToken, () => {     ------------------------------------------------------------->   this._request(
+    // a request to facebook to fetch                                                                                       "GET",
+    // user profile just happened.                                                                                          url,
+                                                                                                                            headers,
+                                                                                                                            "",
+                                                                                                                            access_token,
+                                                                                                                            callback,   
+                                                                                                                         ) {};
+
+    // The rest of this callback handles
+    // the profile data and call the
+    // `done` which is the callback from
+    //  our app.
+  });
+}
+
+The url to this request is ‘/v8.0/me?appsecret_proof=xxxx&fields=id,name,last_name,first_name,middle_name,email&access_token=xxxxx’
+which is actually a graph api with appsecret
+```
