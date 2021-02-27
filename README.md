@@ -193,3 +193,13 @@ userProfile (accessToken, done) {               <----------         return self.
 The url to this request is ‘/v8.0/me?appsecret_proof=xxxx&fields=id,name,last_name,first_name,middle_name,email&access_token=xxxxx’
 which is actually a graph api with appsecret
 ```
+---
+
+To see how *authenticate* handles error:
+
+https://github.com/jaredhanson/passport/blob/9b9dbaa3eb3fc3b561812d95793e1ff6a355c3b8/lib/middleware/authenticate.js#L356-L361
+
+for success case:
+https://github.com/jaredhanson/passport/blob/9b9dbaa3eb3fc3b561812d95793e1ff6a355c3b8/lib/sessionmanager.js#L12
+
+
